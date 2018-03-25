@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 
+#define SDL_MAIN_HANDLED
 #include "SDL.h"
 
 bool running = true;
@@ -68,7 +69,7 @@ void shutdown() {
     SDL_Quit();
 }
 
-int main() {
+int main(int argc, char **argv) {
     init();
     while (running) {
         events();
