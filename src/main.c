@@ -5,6 +5,7 @@
 #include "SDL.h"
 
 #include "sprite.h"
+#include "animation.h"
 
 #define SCREEN_TITLE "Seraph"
 #define SCREEN_WIDTH 640
@@ -14,6 +15,12 @@
 
 typedef struct Game {
     bool running;
+
+    struct {
+        Uint64 now;
+        Uint64 prev;
+        double delta;
+    } timer;
 
     struct {
         const char *title;
@@ -28,11 +35,17 @@ typedef struct Game {
     struct {
         Texture *spritesheet;
         Sprite *sprite;
+        Animation *animation;
+        float animStateTime;
+
     } graphics;
 } Game;
 
 Game game = {
         false,
+        {
+                0, 0, 0.0
+        },
         {
                 SCREEN_TITLE,
                 SCREEN_WIDTH,
@@ -43,8 +56,8 @@ Game game = {
                 NULL,
         },
         {
-                NULL, NULL
-        }
+                NULL, NULL, NULL, 0.f,
+        },
 };
 
 void init() {
@@ -72,6 +85,10 @@ void init() {
     TextureRegion *spriteRegion = createTextureRegion(game.graphics.spritesheet, 0, 0, 24, 24);
     game.graphics.sprite = createSpriteWithBounds(spriteRegion, 0, 0, 96, 96);
 
+    TextureRegion *keyframe1 = createTextureRegion(game.graphics.spritesheet, 0, 0, 24, 24);
+    TextureRegion *keyframe2 = createTextureRegion(game.graphics.spritesheet, 0, 24, 24, 24);
+    game.graphics.animation = createAnimation(0.33f, 2, keyframe1, keyframe2);
+
     game.running = true;
 }
 
@@ -98,7 +115,15 @@ void events() {
     }
 }
 
+void updateTimer() {
+    game.timer.prev = game.timer.now;
+    game.timer.now = SDL_GetPerformanceCounter();
+    game.timer.delta = (double) ((game.timer.now - game.timer.prev) * 1000 / SDL_GetPerformanceFrequency()) * 0.001;
+}
+
 void update() {
+    updateTimer();
+    game.graphics.animStateTime += game.timer.delta;
 }
 
 void render() {
@@ -107,19 +132,26 @@ void render() {
 
 //    renderTexture(game.screen.renderer, game.graphics.texture, NULL, NULL);
 
-//    const int size = 48;
-//    SDL_Rect dest = (SDL_Rect) { 0, 0, size, size };
+    const int size = 48;
+    SDL_Rect dest = (SDL_Rect) { 0, 0, size, size };
+
 //    renderTextureRegion(game.screen.renderer, game.graphics.region1, &dest);
 //
 //    dest = (SDL_Rect) { 0, size, size, size };
 //    renderTextureRegion(game.screen.renderer, game.graphics.region2, &dest);
 
-    renderSprite(game.screen.renderer, game.graphics.sprite);
+//    renderSprite(game.screen.renderer, game.graphics.sprite);
+
+    TextureRegion *keyframe = getAnimationKeyFrame(game.graphics.animation, game.graphics.animStateTime);
+    if (keyframe != NULL) {
+        renderTextureRegion(game.screen.renderer, keyframe, &dest);
+    }
 
     SDL_RenderPresent(game.screen.renderer);
 }
 
 void shutdown() {
+    destroyAnimation(game.graphics.animation);
     destroyTexture(game.graphics.spritesheet);
 
     SDL_DestroyRenderer(game.screen.renderer);
