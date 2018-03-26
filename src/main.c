@@ -5,6 +5,7 @@
 #include "SDL.h"
 
 #include "texture.h"
+#include "texture_region.h"
 
 #define SCREEN_TITLE "Seraph"
 #define SCREEN_WIDTH 640
@@ -27,6 +28,8 @@ typedef struct Game {
 
     struct {
         Texture *texture;
+        TextureRegion *region1;
+        TextureRegion *region2;
     } graphics;
 } Game;
 
@@ -67,6 +70,8 @@ void init() {
     }
 
     game.graphics.texture = createTextureFromFile(game.screen.renderer, "data/oryx_16bit_scifi_creatures_extra_trans.png");
+    game.graphics.region1 = createTextureRegion(game.graphics.texture, 0, 0, 24, 24);
+    game.graphics.region2 = createTextureRegion(game.graphics.texture, 0, 24, 24, 24);
 
     game.running = true;
 }
@@ -98,9 +103,19 @@ void update() {
 }
 
 void render() {
-    SDL_SetRenderDrawColor(game.screen.renderer, 0x00, 0x00, 0x00, 0x00);
+    SDL_SetRenderDrawColor(game.screen.renderer, 0xff, 0x00, 0xff, 0x00);
     SDL_RenderClear(game.screen.renderer);
-    renderTexture(game.screen.renderer, game.graphics.texture, NULL);
+
+//    renderTexture(game.screen.renderer, game.graphics.texture, NULL, NULL);
+
+    const int size = 48;
+    SDL_Rect dest = (SDL_Rect) { 0, 0, size, size };
+    renderTextureRegion(game.screen.renderer, game.graphics.region1, &dest);
+
+    dest = (SDL_Rect) { 0, size, size, size };
+    renderTextureRegion(game.screen.renderer, game.graphics.region2, &dest);
+
+
     SDL_RenderPresent(game.screen.renderer);
 }
 

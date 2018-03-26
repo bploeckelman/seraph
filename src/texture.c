@@ -38,9 +38,13 @@ Texture *createTextureFromSurface(SDL_Renderer *renderer, SDL_Surface *surface) 
     return texture;
 }
 
-void renderTexture(SDL_Renderer *renderer, const Texture *texture, const SDL_Rect *dstRegion) {
+void renderTexture(SDL_Renderer *renderer, const Texture *texture, const SDL_Rect *src, const SDL_Rect *dest) {
     assert(renderer != NULL && texture != NULL);
-    SDL_RenderCopy(renderer, texture->texture, NULL, dstRegion);
+    if (src != NULL) {
+        assert(src->x >= 0 && src->w <= texture->width
+            && src->y >= 0 && src->h <= texture->height);
+    }
+    SDL_RenderCopy(renderer, texture->texture, src, dest);
 }
 
 void destroyTexture(Texture *texture) {
