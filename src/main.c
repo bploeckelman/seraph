@@ -4,8 +4,7 @@
 #define SDL_MAIN_HANDLED
 #include "SDL.h"
 
-#include "texture.h"
-#include "texture_region.h"
+#include "sprite.h"
 
 #define SCREEN_TITLE "Seraph"
 #define SCREEN_WIDTH 640
@@ -27,9 +26,8 @@ typedef struct Game {
     } screen;
 
     struct {
-        Texture *texture;
-        TextureRegion *region1;
-        TextureRegion *region2;
+        Texture *spritesheet;
+        Sprite *sprite;
     } graphics;
 } Game;
 
@@ -45,7 +43,7 @@ Game game = {
                 NULL,
         },
         {
-                NULL
+                NULL, NULL
         }
 };
 
@@ -69,9 +67,10 @@ void init() {
         exit(1);
     }
 
-    game.graphics.texture = createTextureFromFile(game.screen.renderer, "data/oryx_16bit_scifi_creatures_extra_trans.png");
-    game.graphics.region1 = createTextureRegion(game.graphics.texture, 0, 0, 24, 24);
-    game.graphics.region2 = createTextureRegion(game.graphics.texture, 0, 24, 24, 24);
+    game.graphics.spritesheet = createTextureFromFile(game.screen.renderer, "data/oryx_16bit_scifi_creatures_extra_trans.png");
+
+    TextureRegion *spriteRegion = createTextureRegion(game.graphics.spritesheet, 0, 0, 24, 24);
+    game.graphics.sprite = createSpriteWithBounds(spriteRegion, 0, 0, 96, 96);
 
     game.running = true;
 }
@@ -108,21 +107,24 @@ void render() {
 
 //    renderTexture(game.screen.renderer, game.graphics.texture, NULL, NULL);
 
-    const int size = 48;
-    SDL_Rect dest = (SDL_Rect) { 0, 0, size, size };
-    renderTextureRegion(game.screen.renderer, game.graphics.region1, &dest);
+//    const int size = 48;
+//    SDL_Rect dest = (SDL_Rect) { 0, 0, size, size };
+//    renderTextureRegion(game.screen.renderer, game.graphics.region1, &dest);
+//
+//    dest = (SDL_Rect) { 0, size, size, size };
+//    renderTextureRegion(game.screen.renderer, game.graphics.region2, &dest);
 
-    dest = (SDL_Rect) { 0, size, size, size };
-    renderTextureRegion(game.screen.renderer, game.graphics.region2, &dest);
-
+    renderSprite(game.screen.renderer, game.graphics.sprite);
 
     SDL_RenderPresent(game.screen.renderer);
 }
 
 void shutdown() {
-    destroyTexture(game.graphics.texture);
+    destroyTexture(game.graphics.spritesheet);
+
     SDL_DestroyRenderer(game.screen.renderer);
     SDL_DestroyWindow(game.screen.window);
+
     SDL_Quit();
     game.running = false;
 }

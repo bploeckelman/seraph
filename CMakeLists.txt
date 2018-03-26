@@ -8,6 +8,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${PROJECT_SOURCE_DIR}/bin")
 add_executable(${PROJECT_NAME}
         src/texture_region.c
         src/texture.c
+        src/sprite.c
         src/main.c
 )
 
