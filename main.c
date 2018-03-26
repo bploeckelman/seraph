@@ -4,20 +4,29 @@
 #define SDL_MAIN_HANDLED
 #include "SDL.h"
 
-bool running = true;
-SDL_Window *window = NULL;
-SDL_Renderer *renderer = NULL;
-SDL_Texture *texture = NULL;
+
+typedef struct Game {
+    bool running;
+    SDL_Window *window;
+    SDL_Renderer *renderer;
+    SDL_Texture *texture;
+} Game;
+Game game = {
+        false,
+        NULL,
+        NULL,
+        NULL,
+};
 
 void init() {
-    Uint32 sdlFlags = SDL_INIT_VIDEO;
+    Uint32 sdlFlags = SDL_INIT_EVERYTHING;
     if (SDL_Init(sdlFlags)) {
         SDL_Log("Failed to initialize SDL: %s", SDL_GetError());
         exit(1);
     }
 
-    SDL_CreateWindowAndRenderer(640, 480, SDL_WINDOW_RESIZABLE, &window, &renderer);
-    if (window == NULL) {
+    SDL_CreateWindowAndRenderer(640, 480, SDL_WINDOW_RESIZABLE, &game.window, &game.renderer);
+    if (game.window == NULL) {
         SDL_Log("Failed to create window: %s", SDL_GetError());
         exit(1);
     }
@@ -28,12 +37,14 @@ void init() {
         exit(1);
     }
 
-    texture = SDL_CreateTextureFromSurface(renderer, surface);
-    if (texture == NULL) {
+    game.texture = SDL_CreateTextureFromSurface(game.renderer, surface);
+    if (game.texture == NULL) {
         SDL_Log("Failed to create texture from surface: %s", SDL_GetError());
         exit(1);
     }
     SDL_FreeSurface(surface);
+
+    game.running = true;
 }
 
 void events() {
@@ -44,7 +55,7 @@ void events() {
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
         switch (event.type) {
-            case SDL_QUIT: running = false; break;
+            case SDL_QUIT: game.running = false; break;
 //            case SDL_KEYDOWN: break;
 //            case SDL_KEYUP: break;
             default: break;
@@ -56,22 +67,23 @@ void update() {
 }
 
 void render() {
-    SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0x00);
-    SDL_RenderClear(renderer);
-    SDL_RenderCopy(renderer, texture, NULL, NULL);
-    SDL_RenderPresent(renderer);
+    SDL_SetRenderDrawColor(game.renderer, 0x00, 0x00, 0x00, 0x00);
+    SDL_RenderClear(game.renderer);
+    SDL_RenderCopy(game.renderer, game.texture, NULL, NULL);
+    SDL_RenderPresent(game.renderer);
 }
 
 void shutdown() {
-    SDL_DestroyTexture(texture);
-    SDL_DestroyRenderer(renderer);
-    SDL_DestroyWindow(window);
+    SDL_DestroyTexture(game.texture);
+    SDL_DestroyRenderer(game.renderer);
+    SDL_DestroyWindow(game.window);
     SDL_Quit();
+    game.running = false;
 }
 
 int main(int argc, char **argv) {
     init();
-    while (running) {
+    while (game.running) {
         events();
         update();
         render();
