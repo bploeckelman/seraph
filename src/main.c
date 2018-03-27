@@ -40,6 +40,8 @@ typedef struct Game {
     } graphics;
 } Game;
 
+// ----------------------------------------------------------------------------
+
 Game game = {
         false,
         {
@@ -62,12 +64,17 @@ Game game = {
 #define size 48
 SDL_Rect dest = (SDL_Rect) { 0, 0, size, size };
 
+// ----------------------------------------------------------------------------
 
-void updateTimer() {
-    game.timer.prev = game.timer.now;
-    game.timer.now = SDL_GetPerformanceCounter();
-    game.timer.delta = (double) ((game.timer.now - game.timer.prev) * 1000 / SDL_GetPerformanceFrequency()) * 0.001;
-}
+void init();
+void initAssets();
+void events();
+void update();
+void updateTimer();
+void render();
+void shutdown();
+
+// ----------------------------------------------------------------------------
 
 void init() {
     Uint32 sdlFlags = SDL_INIT_EVERYTHING;
@@ -75,8 +82,6 @@ void init() {
         SDL_LogError(SDL_LOG_CATEGORY_ERROR, "Failed to initialize SDL: %s", SDL_GetError());
         exit(1);
     }
-
-    updateTimer();
 
     game.screen.window = SDL_CreateWindow(game.screen.title, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
                                           game.screen.width, game.screen.height, game.screen.windowFlags);
@@ -91,16 +96,22 @@ void init() {
         exit(1);
     }
 
+    initAssets();
+    updateTimer();
+
+    game.running = true;
+}
+
+void initAssets() {
     game.graphics.spritesheet = createTextureFromFile(game.screen.renderer, "data/oryx_16bit_scifi_creatures_extra_trans.png");
 
     TextureRegion *spriteRegion = createTextureRegion(game.graphics.spritesheet, 0, 0, 24, 24);
     game.graphics.sprite = createSpriteWithBounds(spriteRegion, 0, 0, 96, 96);
 
-    TextureRegion *keyframe1 = createTextureRegion(game.graphics.spritesheet, 0, 0, 24, 24);
-    TextureRegion *keyframe2 = createTextureRegion(game.graphics.spritesheet, 0, 24, 24, 24);
-    game.graphics.animation = createAnimation(0.33f, 2, keyframe1, keyframe2);
-
-    game.running = true;
+    TextureRegion **keyframes = (TextureRegion **) calloc(2, sizeof(TextureRegion));
+    keyframes[0] = createTextureRegion(game.graphics.spritesheet, 0, 0, 24, 24);
+    keyframes[1] = createTextureRegion(game.graphics.spritesheet, 0, 24, 24, 24);
+    game.graphics.animation = createAnimationFromArray(0.33f, 2, keyframes);
 }
 
 void events() {
@@ -150,6 +161,12 @@ void update() {
             dest.y += speed;
         }
     }
+}
+
+void updateTimer() {
+    game.timer.prev = game.timer.now;
+    game.timer.now = SDL_GetPerformanceCounter();
+    game.timer.delta = (double) ((game.timer.now - game.timer.prev) * 1000 / SDL_GetPerformanceFrequency()) * 0.001;
 }
 
 void render() {
