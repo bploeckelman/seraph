@@ -10,6 +10,7 @@ add_executable(${PROJECT_NAME}
         src/texture_region.c
         src/texture.c
         src/sprite.c
+        src/common.c
         src/main.c
 )
 
