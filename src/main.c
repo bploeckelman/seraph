@@ -37,7 +37,6 @@ typedef struct Game {
         Sprite *sprite;
         Animation *animation;
         float animStateTime;
-
     } graphics;
 } Game;
 
@@ -60,12 +59,20 @@ Game game = {
         },
 };
 
+void updateTimer() {
+    game.timer.prev = game.timer.now;
+    game.timer.now = SDL_GetPerformanceCounter();
+    game.timer.delta = (double) ((game.timer.now - game.timer.prev) * 1000 / SDL_GetPerformanceFrequency()) * 0.001;
+}
+
 void init() {
     Uint32 sdlFlags = SDL_INIT_EVERYTHING;
     if (SDL_Init(sdlFlags)) {
         SDL_LogError(SDL_LOG_CATEGORY_ERROR, "Failed to initialize SDL: %s", SDL_GetError());
         exit(1);
     }
+
+    updateTimer();
 
     game.screen.window = SDL_CreateWindow(game.screen.title, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
                                           game.screen.width, game.screen.height, game.screen.windowFlags);
@@ -113,12 +120,6 @@ void events() {
             default: break;
         }
     }
-}
-
-void updateTimer() {
-    game.timer.prev = game.timer.now;
-    game.timer.now = SDL_GetPerformanceCounter();
-    game.timer.delta = (double) ((game.timer.now - game.timer.prev) * 1000 / SDL_GetPerformanceFrequency()) * 0.001;
 }
 
 void update() {
