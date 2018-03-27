@@ -44,7 +44,8 @@ void renderTexture(SDL_Renderer *renderer, const Texture *texture, const SDL_Rec
         assert(src->x >= 0 && src->w <= texture->width
             && src->y >= 0 && src->h <= texture->height);
     }
-    SDL_RenderCopy(renderer, texture->texture, src, dest);
+//    SDL_RenderCopy(renderer, texture->texture, src, dest);
+    SDL_RenderCopyEx(renderer, texture->texture, src, dest, 0.0, NULL, SDL_FLIP_HORIZONTAL);
 }
 
 void destroyTexture(Texture *texture) {

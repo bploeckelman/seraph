@@ -109,8 +109,8 @@ void initAssets() {
     game.graphics.sprite = createSpriteWithBounds(spriteRegion, 0, 0, 96, 96);
 
     TextureRegion **keyframes = (TextureRegion **) calloc(2, sizeof(TextureRegion));
-    keyframes[0] = createTextureRegion(game.graphics.spritesheet, 0, 0, 24, 24);
-    keyframes[1] = createTextureRegion(game.graphics.spritesheet, 0, 24, 24, 24);
+    keyframes[0] = createTextureRegion(game.graphics.spritesheet, 24, 0, 24, 24);
+    keyframes[1] = createTextureRegion(game.graphics.spritesheet, 24, 24, 24, 24);
     game.graphics.animation = createAnimationFromArray(0.33f, 2, keyframes);
 }
 
@@ -139,27 +139,26 @@ void events() {
 
 void update() {
     updateTimer();
-    game.graphics.animStateTime += game.timer.delta;
 
     const Uint8 *keyboardState = SDL_GetKeyboardState(NULL);
     const float speed = (float) (200 * game.timer.delta);
+
     if (keyboardState[SDL_SCANCODE_LEFT]) {
-        if (dest.x - speed >= 0.f) {
-            dest.x -= speed;
-        }
+        translateSprite(game.graphics.sprite, -speed, 0.f);
     } else if (keyboardState[SDL_SCANCODE_RIGHT]) {
-        if (dest.x + dest.w + speed <= game.screen.width) {
-            dest.x += speed;
-        }
+        translateSprite(game.graphics.sprite, speed, 0.f);
     }
+
     if (keyboardState[SDL_SCANCODE_UP]) {
-        if (dest.y - speed >= 0.f) {
-            dest.y -= speed;
-        }
+        translateSprite(game.graphics.sprite, 0.f, -speed);
     } else if (keyboardState[SDL_SCANCODE_DOWN]) {
-        if (dest.y + dest.h + speed <= game.screen.height) {
-            dest.y += speed;
-        }
+        translateSprite(game.graphics.sprite, 0.f, speed);
+    }
+
+    game.graphics.animStateTime += game.timer.delta;
+    TextureRegion *keyframe = getAnimationKeyFrame(game.graphics.animation, game.graphics.animStateTime);
+    if (keyframe != NULL) {
+        game.graphics.sprite->keyframe = keyframe;
     }
 }
 
@@ -170,22 +169,10 @@ void updateTimer() {
 }
 
 void render() {
-    SDL_SetRenderDrawColor(game.screen.renderer, 0xff, 0x00, 0xff, 0x00);
+    SDL_SetRenderDrawColor(game.screen.renderer, 0xd3, 0xd3, 0xd3, 0x00);
     SDL_RenderClear(game.screen.renderer);
 
-//    renderTexture(game.screen.renderer, game.graphics.texture, NULL, NULL);
-
-//    renderTextureRegion(game.screen.renderer, game.graphics.region1, &dest);
-//
-//    dest = (SDL_Rect) { 0, size, size, size };
-//    renderTextureRegion(game.screen.renderer, game.graphics.region2, &dest);
-
-//    renderSprite(game.screen.renderer, game.graphics.sprite);
-
-    TextureRegion *keyframe = getAnimationKeyFrame(game.graphics.animation, game.graphics.animStateTime);
-    if (keyframe != NULL) {
-        renderTextureRegion(game.screen.renderer, keyframe, &dest);
-    }
+    renderSprite(game.screen.renderer, game.graphics.sprite);
 
     SDL_RenderPresent(game.screen.renderer);
 }
