@@ -59,6 +59,10 @@ Game game = {
         },
 };
 
+#define size 48
+SDL_Rect dest = (SDL_Rect) { 0, 0, size, size };
+
+
 void updateTimer() {
     game.timer.prev = game.timer.now;
     game.timer.now = SDL_GetPerformanceCounter();
@@ -125,6 +129,27 @@ void events() {
 void update() {
     updateTimer();
     game.graphics.animStateTime += game.timer.delta;
+
+    const Uint8 *keyboardState = SDL_GetKeyboardState(NULL);
+    const float speed = (float) (200 * game.timer.delta);
+    if (keyboardState[SDL_SCANCODE_LEFT]) {
+        if (dest.x - speed >= 0.f) {
+            dest.x -= speed;
+        }
+    } else if (keyboardState[SDL_SCANCODE_RIGHT]) {
+        if (dest.x + dest.w + speed <= game.screen.width) {
+            dest.x += speed;
+        }
+    }
+    if (keyboardState[SDL_SCANCODE_UP]) {
+        if (dest.y - speed >= 0.f) {
+            dest.y -= speed;
+        }
+    } else if (keyboardState[SDL_SCANCODE_DOWN]) {
+        if (dest.y + dest.h + speed <= game.screen.height) {
+            dest.y += speed;
+        }
+    }
 }
 
 void render() {
@@ -132,9 +157,6 @@ void render() {
     SDL_RenderClear(game.screen.renderer);
 
 //    renderTexture(game.screen.renderer, game.graphics.texture, NULL, NULL);
-
-    const int size = 48;
-    SDL_Rect dest = (SDL_Rect) { 0, 0, size, size };
 
 //    renderTextureRegion(game.screen.renderer, game.graphics.region1, &dest);
 //
