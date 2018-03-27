@@ -5,6 +5,18 @@
 #include "common.h"
 
 Animation *createAnimation(float frameDuration, unsigned int numKeyFrames, ...) {
+    TextureRegion **keyframes = (TextureRegion **) calloc(numKeyFrames, sizeof(TextureRegion));
+    va_list args;
+    va_start(args, numKeyFrames);
+    for (int i = 0; i < numKeyFrames; i++) {
+        keyframes[i] = va_arg(args, TextureRegion*);
+    }
+    va_end(args);
+
+    return createAnimationFromArray(frameDuration, numKeyFrames, keyframes);
+}
+
+Animation *createAnimationFromArray(float frameDuration, unsigned int numKeyFrames, TextureRegion *keyframes[]) {
     Animation *animation = (Animation *) calloc(1, sizeof(Animation));
     animation->playMode          = LOOP;
     animation->numKeyFrames      = numKeyFrames;
@@ -12,15 +24,7 @@ Animation *createAnimation(float frameDuration, unsigned int numKeyFrames, ...) 
     animation->lastStateTime     = 0.f;
     animation->frameDuration     = frameDuration;
     animation->animationDuration = frameDuration * numKeyFrames;
-    animation->keyframes         = (TextureRegion **) calloc(numKeyFrames, sizeof(TextureRegion));
-
-    va_list args;
-    va_start(args, numKeyFrames);
-    for (int i = 0; i < animation->numKeyFrames; i++) {
-        animation->keyframes[i] = va_arg(args, TextureRegion*);
-    }
-    va_end(args);
-
+    animation->keyframes         = keyframes;
     return animation;
 }
 

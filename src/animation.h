@@ -16,6 +16,7 @@ typedef struct Animation {
 } Animation;
 
 Animation *createAnimation(float frameDuration, unsigned int numKeyFrames, ...);
+Animation *createAnimationFromArray(float frameDuration, unsigned int numKeyFrames, TextureRegion *keyframes[]);
 TextureRegion *getAnimationKeyFrame(Animation *animation, float stateTime);
 int getAnimationKeyFrameIndex(Animation *animation, float stateTime);
 void destroyAnimation(Animation *animation);
