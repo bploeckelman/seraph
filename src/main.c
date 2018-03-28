@@ -77,6 +77,8 @@ void shutdown();
 // ----------------------------------------------------------------------------
 
 void init() {
+    atexit(shutdown);
+
     Uint32 sdlFlags = SDL_INIT_EVERYTHING;
     if (SDL_Init(sdlFlags)) {
         SDL_LogError(SDL_LOG_CATEGORY_ERROR, "Failed to initialize SDL: %s", SDL_GetError());
@@ -195,6 +197,5 @@ int main(int argc, char **argv) {
         update();
         render();
     }
-    shutdown();
-    return 0;
+    exit(0);
 }
