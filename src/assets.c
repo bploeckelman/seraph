@@ -1,5 +1,7 @@
 #include <assert.h>
 #include <stddef.h>
+#include <string.h>
+#include <stdio.h>
 
 #include <SDL_log.h>
 
@@ -62,7 +64,7 @@ void loadSpritesheets(Assets *assets, json_value *jsonValue, SDL_Renderer *rende
         SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "  No spritesheet definitions found.");
         return;
     } else {
-        SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "  Loading %zu spritesheet(s)...", assets->numSpritesheets);
+        SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "  Loading %lu spritesheet(s)...", (unsigned long) assets->numSpritesheets);
     }
 
     assets->spritesheets = (Texture **) calloc(numSpritesheets, sizeof(Texture *));
@@ -100,7 +102,7 @@ void loadAnimations(Assets *assets, json_value *jsonValue) {
         SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "  No animation definitions found.");
         return;
     } else {
-        SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "  Loading %zu animation(s)...", assets->numAnimations);
+        SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "  Loading %lu animation(s)...", (unsigned long) assets->numAnimations);
     }
 
     assets->animations = (Animation **) calloc(numAnimations, sizeof(Animation *));
