@@ -45,6 +45,105 @@
         "72 0 24 24",
         "72 24 24 24"
       ]
+    },
+    {
+      "name": "bear_brown",
+      "duration": 0.33,
+      "spritesheet": "oryx_creatures",
+      "keyframes": [
+        "96 0 24 24",
+        "96 24 24 24"
+      ]
+    },
+    {
+      "name": "bear_black",
+      "duration": 0.33,
+      "spritesheet": "oryx_creatures",
+      "keyframes": [
+        "120 0 24 24",
+        "120 24 24 24"
+      ]
+    },
+    {
+      "name": "bear_white",
+      "duration": 0.33,
+      "spritesheet": "oryx_creatures",
+      "keyframes": [
+        "144 0 24 24",
+        "144 24 24 24"
+      ]
+    },
+    {
+      "name": "scorpion_red",
+      "duration": 0.33,
+      "spritesheet": "oryx_creatures",
+      "keyframes": [
+        "168 0 24 24",
+        "168 24 24 24"
+      ]
+    },
+    {
+      "name": "scorpion_brown",
+      "duration": 0.33,
+      "spritesheet": "oryx_creatures",
+      "keyframes": [
+        "192 0 24 24",
+        "192 24 24 24"
+      ]
+    },
+    {
+      "name": "flame_normal",
+      "duration": 0.33,
+      "spritesheet": "oryx_creatures",
+      "keyframes": [
+        "216 0 24 24",
+        "216 24 24 24"
+      ]
+    },
+    {
+      "name": "flame_blue",
+      "duration": 0.33,
+      "spritesheet": "oryx_creatures",
+      "keyframes": [
+        "240 0 24 24",
+        "240 24 24 24"
+      ]
+    },
+    {
+      "name": "flame_green",
+      "duration": 0.33,
+      "spritesheet": "oryx_creatures",
+      "keyframes": [
+        "264 0 24 24",
+        "264 24 24 24"
+      ]
+    },
+    {
+      "name": "flame_purple",
+      "duration": 0.33,
+      "spritesheet": "oryx_creatures",
+      "keyframes": [
+        "288 0 24 24",
+        "288 24 24 24"
+      ]
+    },
+    {
+      "name": "flame_red",
+      "duration": 0.33,
+      "spritesheet": "oryx_creatures",
+      "keyframes": [
+        "312 0 24 24",
+        "312 24 24 24"
+      ]
+    },
+    {
+      "name": "flame_white",
+      "duration": 0.33,
+      "spritesheet": "oryx_creatures",
+      "keyframes": [
+        "336 0 24 24",
+        "336 24 24 24"
+      ]
     }
   ]
 }
