@@ -6,6 +6,7 @@
 
 #include "sprite.h"
 #include "animation.h"
+#include "assets.h"
 
 #define SCREEN_TITLE "Seraph"
 #define SCREEN_WIDTH 640
@@ -33,11 +34,12 @@ typedef struct Game {
     } screen;
 
     struct {
-        Texture *spritesheet;
         Sprite *sprite;
-        Animation *animation;
+        size_t animIndex;
         float animStateTime;
     } graphics;
+
+    Assets *assets;
 } Game;
 
 // ----------------------------------------------------------------------------
@@ -57,12 +59,10 @@ Game game = {
                 NULL,
         },
         {
-                NULL, NULL, NULL, 0.f,
+                NULL, 0, 0.f,
         },
+        NULL,
 };
-
-#define size 48
-SDL_Rect dest = (SDL_Rect) { 0, 0, size, size };
 
 // ----------------------------------------------------------------------------
 
@@ -105,15 +105,10 @@ void init() {
 }
 
 void initAssets() {
-    game.graphics.spritesheet = createTextureFromFile(game.screen.renderer, "data/oryx_16bit_scifi_creatures_extra_trans.png");
+    game.assets = loadAssets("data/assets.json", game.screen.renderer);
 
-    TextureRegion *spriteRegion = createTextureRegion(game.graphics.spritesheet, 0, 0, 24, 24);
+    TextureRegion *spriteRegion = createTextureRegion(game.assets->spritesheets[0], 0, 0, 24, 24);
     game.graphics.sprite = createSpriteWithBounds(spriteRegion, 0, 0, 96, 96);
-
-    TextureRegion **keyframes = (TextureRegion **) calloc(2, sizeof(TextureRegion));
-    keyframes[0] = createTextureRegion(game.graphics.spritesheet, 24, 0, 24, 24);
-    keyframes[1] = createTextureRegion(game.graphics.spritesheet, 24, 24, 24, 24);
-    game.graphics.animation = createAnimationFromArray(0.33f, 2, keyframes);
 }
 
 void events() {
@@ -128,6 +123,9 @@ void events() {
             case SDL_KEYUP: {
                 if (event.key.keysym.sym == SDLK_ESCAPE) {
                     game.running = false;
+                }
+                if (event.key.keysym.sym == SDLK_SPACE) {
+                    game.graphics.animIndex = (game.graphics.animIndex + 1) % game.assets->numAnimations;
                 }
             } break;
             case SDL_KEYDOWN: {
@@ -158,7 +156,7 @@ void update() {
     }
 
     game.graphics.animStateTime += game.timer.delta;
-    TextureRegion *keyframe = getAnimationKeyFrame(game.graphics.animation, game.graphics.animStateTime);
+    TextureRegion *keyframe = getAnimationKeyFrame(game.assets->animations[game.graphics.animIndex], game.graphics.animStateTime);
     if (keyframe != NULL) {
         game.graphics.sprite->keyframe = keyframe;
     }
@@ -180,8 +178,7 @@ void render() {
 }
 
 void shutdown() {
-    destroyAnimation(game.graphics.animation);
-    destroyTexture(game.graphics.spritesheet);
+    destroyAssets(game.assets);
 
     SDL_DestroyRenderer(game.screen.renderer);
     SDL_DestroyWindow(game.screen.window);

@@ -5,7 +5,7 @@
 
 #include "texture.h"
 
-Texture *createTextureFromFile(SDL_Renderer *renderer, const char *path) {
+Texture *createTextureFromFile(SDL_Renderer *renderer, const char *name, const char *path) {
     assert(renderer != NULL && path != NULL);
 
     SDL_Surface *surface = IMG_Load(path);
@@ -13,18 +13,21 @@ Texture *createTextureFromFile(SDL_Renderer *renderer, const char *path) {
         SDL_LogError(SDL_LOG_CATEGORY_ERROR, "Failed to load image '%s': %s", path, IMG_GetError());
         exit(1);
     }
-    Texture *texture = createTextureFromSurface(renderer, surface);
+    Texture *texture = createTextureFromSurface(renderer, surface, name);
+    texture->path = path;
     SDL_FreeSurface(surface);
 
-    SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Loaded texture: '%s'", path);
+    SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION, "Loaded texture: '%s'", path);
     return texture;
 }
 
-Texture *createTextureFromSurface(SDL_Renderer *renderer, SDL_Surface *surface) {
+Texture *createTextureFromSurface(SDL_Renderer *renderer, SDL_Surface *surface, const char *name) {
     assert(renderer != NULL && surface != NULL);
     assert(surface->w >= 0 && surface->h >= 0);
 
     Texture *texture = (Texture *) calloc(1, sizeof(Texture));
+    texture->name = name;
+    texture->path = NULL;
     texture->width  = (unsigned int) surface->w;
     texture->height = (unsigned int) surface->h;
     texture->texture = SDL_CreateTextureFromSurface(renderer, surface);

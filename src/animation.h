@@ -6,6 +6,7 @@
 enum PlayMode { NORMAL, REVERSED, LOOP, LOOP_REVERSED, LOOP_PINGPONG };
 
 typedef struct Animation {
+    const char *name;
     enum PlayMode playMode;
     unsigned int numKeyFrames;
     unsigned int lastFrameIndex;

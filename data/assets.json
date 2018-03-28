@@ -1,0 +1,50 @@
+{
+  "spritesheets": [
+    {
+      "name": "oryx_creatures",
+      "path": "data/oryx_16bit_scifi_creatures_extra_trans.png"
+    },
+    {
+      "name": "oryx_interface",
+      "path": "data/oryx_16bit_scifi_interface_trans.png"
+    }
+  ],
+  "animations": [
+    {
+      "name": "owlbear1",
+      "duration": 0.33,
+      "spritesheet": "oryx_creatures",
+      "keyframes": [
+        "0 0 24 24",
+        "0 24 24 24"
+      ]
+    },
+    {
+      "name": "owlbear2",
+      "duration": 0.33,
+      "spritesheet": "oryx_creatures",
+      "keyframes": [
+        "24 0 24 24",
+        "24 24 24 24"
+      ]
+    },
+    {
+      "name": "worm1",
+      "duration": 0.33,
+      "spritesheet": "oryx_creatures",
+      "keyframes": [
+        "48 0 24 24",
+        "48 24 24 24"
+      ]
+    },
+    {
+      "name": "worm2",
+      "duration": 0.33,
+      "spritesheet": "oryx_creatures",
+      "keyframes": [
+        "72 0 24 24",
+        "72 24 24 24"
+      ]
+    }
+  ]
+}

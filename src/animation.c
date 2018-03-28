@@ -18,6 +18,7 @@ Animation *createAnimation(float frameDuration, unsigned int numKeyFrames, ...) 
 
 Animation *createAnimationFromArray(float frameDuration, unsigned int numKeyFrames, TextureRegion *keyframes[]) {
     Animation *animation = (Animation *) calloc(1, sizeof(Animation));
+    animation->name              = NULL;
     animation->playMode          = LOOP;
     animation->numKeyFrames      = numKeyFrames;
     animation->lastFrameIndex    = 0;
