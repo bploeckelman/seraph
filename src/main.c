@@ -151,11 +151,12 @@ void update() {
         game.graphics.sprite->facing = RIGHT;
     }
 
-    if (keyboardState[SDL_SCANCODE_UP]) {
-        translateSprite(game.graphics.sprite, 0.f, -speed);
-    } else if (keyboardState[SDL_SCANCODE_DOWN]) {
-        translateSprite(game.graphics.sprite, 0.f, speed);
-    }
+    if      (keyboardState[SDL_SCANCODE_UP])   translateSprite(game.graphics.sprite, 0.f, -speed);
+    else if (keyboardState[SDL_SCANCODE_DOWN]) translateSprite(game.graphics.sprite, 0.f,  speed);
+
+    if      (keyboardState[SDL_SCANCODE_Q]) rotateSprite(game.graphics.sprite, -speed);
+    else if (keyboardState[SDL_SCANCODE_E]) rotateSprite(game.graphics.sprite,  speed);
+    else if (keyboardState[SDL_SCANCODE_W]) game.graphics.sprite->angle = 0.0;
 
     game.graphics.animStateTime += game.timer.delta;
     TextureRegion *keyframe = getAnimationKeyFrame(game.assets->animations[game.graphics.animIndex], game.graphics.animStateTime);
