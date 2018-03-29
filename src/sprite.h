@@ -3,7 +3,10 @@
 
 #include "texture_region.h"
 
+enum Facing { LEFT, RIGHT };
+
 typedef struct Sprite {
+    enum Facing facing;
     SDL_Rect bounds;
     TextureRegion *keyframe;
 } Sprite;

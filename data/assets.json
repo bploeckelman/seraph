@@ -144,6 +144,143 @@
         "336 0 24 24",
         "336 24 24 24"
       ]
+    },
+
+
+    {
+      "name": "onion_white",
+      "duration": 0.33,
+      "spritesheet": "oryx_creatures",
+      "keyframes": [
+        "0 48 24 24",
+        "0 72 24 24"
+      ]
+    },
+    {
+      "name": "onion_brown",
+      "duration": 0.33,
+      "spritesheet": "oryx_creatures",
+      "keyframes": [
+        "24 48 24 24",
+        "24 72 24 24"
+      ]
+    },
+    {
+      "name": "slime_red",
+      "duration": 0.33,
+      "spritesheet": "oryx_creatures",
+      "keyframes": [
+        "48 48 24 24",
+        "48 72 24 24"
+      ]
+    },
+    {
+      "name": "slime_blue",
+      "duration": 0.33,
+      "spritesheet": "oryx_creatures",
+      "keyframes": [
+        "72 48 24 24",
+        "72 72 24 24"
+      ]
+    },
+    {
+      "name": "slime_grey",
+      "duration": 0.33,
+      "spritesheet": "oryx_creatures",
+      "keyframes": [
+        "96 48 24 24",
+        "96 72 24 24"
+      ]
+    },
+    {
+      "name": "slime_brown",
+      "duration": 0.33,
+      "spritesheet": "oryx_creatures",
+      "keyframes": [
+        "120 48 24 24",
+        "120 72 24 24"
+      ]
+    },
+    {
+      "name": "eye_single",
+      "duration": 0.33,
+      "spritesheet": "oryx_creatures",
+      "keyframes": [
+        "144 48 24 24",
+        "144 72 24 24"
+      ]
+    },
+    {
+      "name": "eye_multi",
+      "duration": 0.33,
+      "spritesheet": "oryx_creatures",
+      "keyframes": [
+        "168 48 24 24",
+        "168 72 24 24"
+      ]
+    },
+    {
+      "name": "silhouette_red",
+      "duration": 0.33,
+      "spritesheet": "oryx_creatures",
+      "keyframes": [
+        "192 48 24 24",
+        "192 72 24 24"
+      ]
+    },
+    {
+      "name": "silhouette_blue",
+      "duration": 0.33,
+      "spritesheet": "oryx_creatures",
+      "keyframes": [
+        "216 48 24 24",
+        "216 72 24 24"
+      ]
+    },
+    {
+      "name": "silhouette_brown",
+      "duration": 0.33,
+      "spritesheet": "oryx_creatures",
+      "keyframes": [
+        "240 48 24 24",
+        "240 72 24 24"
+      ]
+    },
+    {
+      "name": "cube_blue",
+      "duration": 0.33,
+      "spritesheet": "oryx_creatures",
+      "keyframes": [
+        "264 48 24 24",
+        "264 72 24 24"
+      ]
+    },
+    {
+      "name": "cube_green",
+      "duration": 0.33,
+      "spritesheet": "oryx_creatures",
+      "keyframes": [
+        "288 48 24 24",
+        "288 72 24 24"
+      ]
+    },
+    {
+      "name": "cube_red",
+      "duration": 0.33,
+      "spritesheet": "oryx_creatures",
+      "keyframes": [
+        "312 48 24 24",
+        "312 72 24 24"
+      ]
+    },
+    {
+      "name": "cube_brown",
+      "duration": 0.33,
+      "spritesheet": "oryx_creatures",
+      "keyframes": [
+        "336 48 24 24",
+        "336 72 24 24"
+      ]
     }
   ]
 }

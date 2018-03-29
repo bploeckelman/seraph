@@ -145,8 +145,10 @@ void update() {
 
     if (keyboardState[SDL_SCANCODE_LEFT]) {
         translateSprite(game.graphics.sprite, -speed, 0.f);
+        game.graphics.sprite->facing = LEFT;
     } else if (keyboardState[SDL_SCANCODE_RIGHT]) {
         translateSprite(game.graphics.sprite, speed, 0.f);
+        game.graphics.sprite->facing = RIGHT;
     }
 
     if (keyboardState[SDL_SCANCODE_UP]) {

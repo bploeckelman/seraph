@@ -7,8 +7,8 @@
 typedef struct Assets {
     const char *path;
     size_t numSpritesheets;
-    Texture **spritesheets;
     size_t numAnimations;
+    Texture **spritesheets;
     Animation **animations;
 } Assets;
 
