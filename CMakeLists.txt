@@ -6,6 +6,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/cmake")
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${PROJECT_SOURCE_DIR}/bin")
 
 add_executable(${PROJECT_NAME}
+        src/doom/doom_utils.c
         src/json/json.c
         src/animation.c
         src/texture_region.c

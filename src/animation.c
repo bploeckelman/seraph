@@ -67,5 +67,4 @@ void destroyAnimation(Animation *animation) {
 
     free(animation->keyframes);
     free(animation);
-    animation = NULL;
 }

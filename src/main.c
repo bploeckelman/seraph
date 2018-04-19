@@ -7,6 +7,7 @@
 #include "sprite.h"
 #include "animation.h"
 #include "assets.h"
+#include "doom/doom_utils.h"
 
 #define SCREEN_TITLE "Seraph"
 #define SCREEN_WIDTH 640
@@ -107,6 +108,8 @@ void init() {
 void initAssets() {
     game.assets = loadAssets("data/assets.json", game.screen.renderer);
 
+    readWad("data/doom1.wad");
+
     TextureRegion *spriteRegion = createTextureRegion(game.assets->spritesheets[0], 0, 0, 24, 24);
     game.graphics.sprite = createSpriteWithBounds(spriteRegion, 0, 0, 96, 96);
 }
@@ -177,14 +180,27 @@ void render() {
 
     renderSprite(game.screen.renderer, game.graphics.sprite);
 
+    const int size = 6;
+    for (int i = 0; i < maps[0].numVertexes; ++i) {
+        SDL_Texture *texture = game.assets->animations[9]->keyframes[0]->texture->texture;
+        const SDL_Rect src = game.assets->animations[9]->keyframes[0]->region;
+        const SDL_Rect dest = {
+                (maps[0].vertexes[i].x - size / 2 -  800) / 5, // shift onscreen & scale
+                (maps[0].vertexes[i].y - size / 2 + 4500) / 5, // shift onscreen & scale
+                size, size
+        };
+        SDL_RenderCopy(game.screen.renderer, texture, &src, &dest);
+    }
+
     SDL_RenderPresent(game.screen.renderer);
 }
 
 void shutdown() {
-    destroyAssets(game.assets);
-
     SDL_DestroyRenderer(game.screen.renderer);
     SDL_DestroyWindow(game.screen.window);
+
+    destroyAssets(game.assets);
+    destroyMaps();
 
     SDL_Quit();
     game.running = false;

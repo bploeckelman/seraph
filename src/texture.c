@@ -53,5 +53,4 @@ void destroyTexture(Texture *texture) {
     if (texture == NULL || texture->texture == NULL) return;
     SDL_DestroyTexture(texture->texture);
     free(texture);
-    texture = NULL;
 }
