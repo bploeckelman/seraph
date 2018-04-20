@@ -6,144 +6,227 @@
 
 #include "doom_utils.h"
 
-Map *maps = NULL;
-size_t numMaps = 0;
+//
+// Dynamic array helpers
+//
+void initMapLumps(maplumps_t *maplumps, int initialSize) {
+    maplumps->lumps = (filelump_t *) calloc((size_t) initialSize, sizeof(filelump_t));
+    maplumps->count = 0;
+    maplumps->capacity = initialSize;
+}
 
-void readWad(const char *wadFileName) {
+void insertMapLump(maplumps_t *maplumps, filelump_t *lump) {
+    if (maplumps->count == maplumps->capacity) {
+        maplumps->capacity *= 2;
+        maplumps->lumps = (filelump_t *) realloc(maplumps->lumps, maplumps->capacity * sizeof(filelump_t));
+    }
+    maplumps->lumps[maplumps->count] = *lump;
+    maplumps->count++;
+}
+
+void freeMapLumps(maplumps_t *maplumps) {
+    free(maplumps->lumps);
+    maplumps->lumps = NULL;
+    maplumps->count = 0;
+    maplumps->capacity = 0;
+}
+
+//
+// Loading helper functions
+//
+bool isLumpMapLabel(filelump_t *lump) {
+    assert(lump != NULL);
+    // ExMx
+    bool isDoom1MapLabelLump = (lump->name[0] == 'E' && lump->name[2] == 'M'
+                             && lump->name[1] >= '1' && lump->name[1] <= '9'
+                             && lump->name[3] >= '1' && lump->name[3] <= '9');
+    // MAPxx
+    bool isDoom2MapLabelLump = (lump->name[0] == 'M' && lump->name[1] == 'A' && lump->name[2] == 'P'
+                             && lump->name[3] >= '1' && lump->name[3] <= '9'
+                             && lump->name[4] >= '1' && lump->name[4] <= '9');
+    return isDoom1MapLabelLump || isDoom2MapLabelLump;
+}
+
+//
+// Read the specified WAD to populate the mapLumps struct
+//
+void readWadMaps(const char *wadFileName, maplumps_t *mapLumps) {
+    assert(mapLumps != NULL);
+
     FILE *wadFile = fopen(wadFileName, "rb");
     assert(wadFile != NULL);
     {
-        // Read Header
-        WadHeader header;
-        fread(&header, sizeof(header), 1, wadFile);
-        if (strncmp(header.identification, "IWAD", 4) != 0
-         && strncmp(header.identification, "PWAD", 4) != 0) {
-            printf("\nInvalid WAD identifier: %.*s", 4, header.identification);
+        // Read and validate wadinfo
+        wadinfo_t wadinfo;
+        fread(&wadinfo, sizeof(wadinfo_t), 1, wadFile);
+
+        if (strncmp(wadinfo.identification, "IWAD", 4) != 0
+         && strncmp(wadinfo.identification, "PWAD", 4) != 0) {
+            printf("\nInvalid WAD info: identification '%.*s'", 4, wadinfo.identification);
             fclose(wadFile);
             return;
         }
-        printf("\n%s - %.*s, %d lumps, dictionary @ %x (%d bytes)\n", wadFileName, 4, header.identification, header.numLumps, header.infoTableOffset, header.infoTableOffset);
 
-        // Determine how many Maps there are
-        numMaps = 0;
-        fseek(wadFile, header.infoTableOffset, SEEK_SET);
-        {
-            for (int i = 0; i < header.numLumps; ++i) {
-                WadFileLump lump;
-                fread(&lump, sizeof(lump), 1, wadFile);
-                // Silly way to check if this is a map lump, but *shrug*, not gonna pull in a regex lib for this
-                if (lump.name[0] == 'E' && lump.name[1] >= '1' && lump.name[1] <= '9'
-                 && lump.name[2] == 'M' && lump.name[3] >= '1' && lump.name[3] <= '9') {
-                    numMaps++;
-                }
-                // TODO: Doom2 format is MAPxy rather than ExMy
-            }
-            maps = (Map *) calloc(numMaps, sizeof(Map *));
-        }
-        fseek(wadFile, header.infoTableOffset, SEEK_SET);
+        printf("\n%s - %.*s, %d lumps, dictionary @ %x (%d bytes)\n",
+               wadFileName, 4, wadinfo.identification, wadinfo.numLumps,
+               wadinfo.infoTableOffset, wadinfo.infoTableOffset);
 
-        // Read map lumps
-        int currentMap = -1;
-        for (int i = 0; i < header.numLumps; ++i) {
-            // Read lump info
-            WadFileLump lump;
-            fread(&lump, sizeof(lump), 1, wadFile);
+        // Read in lumps, storing map lumps
+        fseek(wadFile, wadinfo.infoTableOffset, SEEK_SET);
+        for (int i = 0; i < wadinfo.numLumps; ++i) {
+            filelump_t lump;
+            fread(&lump, sizeof(filelump_t), 1, wadFile);
 
-            // Check for Map lump -----------------------------------
-            if (lump.name[0] == 'E' && lump.name[1] >= '1' && lump.name[1] <= '9'
-             && lump.name[2] == 'M' && lump.name[3] >= '1' && lump.name[3] <= '9') {
-                currentMap++;
-                memset(&maps[currentMap], 0, sizeof(Map));
-                strncpy(maps[currentMap].name, lump.name, 4);
-                printf("\t[----- Map %s -----]\n", maps[currentMap].name);
+            if (isLumpMapLabel(&lump)) {
+                insertMapLump(mapLumps, &lump);
+                printf("Map %4d: %8.*s, %5d bytes, offset @ 0x%x (%d bytes)\n",
+                       i, 8, lump.name, lump.size, lump.filePos, lump.filePos);
             } else {
-                // Debug out non-map lump info
+                // Non-map-label lump
                 printf("Lump %4d: %8.*s, %5d bytes, offset @ 0x%x (%d bytes)\n",
                        i, 8, lump.name, lump.size, lump.filePos, lump.filePos);
             }
-
-            // Read in THINGS ---------------------------------------
-            if (strncmp(lump.name, "THINGS", 8) == 0) {
-                maps[currentMap].numThings = lump.size / sizeof(THING);
-                printf("\t%d things: ", (int) maps[currentMap].numThings);
-
-                if (maps[currentMap].things == NULL) {
-                    maps[currentMap].things = (THING *) calloc(maps[currentMap].numThings, sizeof(THING));
-                }
-
-                fpos_t previousFilePos;
-                fgetpos(wadFile, &previousFilePos);
-                {
-                    fseek(wadFile, lump.filePos, SEEK_SET);
-                    for (int j = 0; j < maps[currentMap].numThings; ++j) {
-                        fread(&maps[currentMap].things[j], sizeof(THING), 1, wadFile);
-                        printf("{pos: (%d, %d), angle: %d, type: 0x%08x, flags: 0x%08x} ",
-                               maps[currentMap].things[j].x, maps[currentMap].things[j].y, maps[currentMap].things[j].angle,
-                               maps[currentMap].things[j].type, maps[currentMap].things[j].flags);
-                    }
-                    printf("\n");
-                }
-                fsetpos(wadFile, &previousFilePos);
-            }
-
-            // Read in LINEDEFS -------------------------------------
-            if (strncmp(lump.name, "LINEDEFS", 8) == 0) {
-                maps[currentMap].numLinedefs = lump.size / sizeof(LINEDEF);
-                printf("\t%d linedefs: ", (int) maps[currentMap].numLinedefs);
-
-                if (maps[currentMap].linedefs == NULL) {
-                    maps[currentMap].linedefs = (LINEDEF *) calloc(maps[currentMap].numLinedefs, sizeof(LINEDEF));
-                }
-
-                fpos_t previousFilePos;
-                fgetpos(wadFile, &previousFilePos);
-                {
-                    fseek(wadFile, lump.filePos, SEEK_SET);
-                    for (int j = 0; j < maps[currentMap].numLinedefs; ++j) {
-                        fread(&maps[currentMap].linedefs[j], sizeof(LINEDEF), 1, wadFile);
-                        printf("{se: (%d, %d), f: 0x%x, t: 0x%x, tag: %d, rl: (%d, %d)} ",
-                               maps[currentMap].linedefs[j].startVertex, maps[currentMap].linedefs[j].endVertex,
-                               maps[currentMap].linedefs[j].flags, maps[currentMap].linedefs[j].types, maps[currentMap].linedefs[j].tag,
-                               maps[currentMap].linedefs[j].rightSide, maps[currentMap].linedefs[j].leftSide);
-                    }
-                    printf("\n");
-                }
-                fsetpos(wadFile, &previousFilePos);
-            }
-
-            // Read in VERTEXES -------------------------------------
-            if (strncmp(lump.name, "VERTEXES", 8) == 0) {
-                maps[currentMap].numVertexes = lump.size / sizeof(VERTEX);
-                printf("\t%d vertices: ", (int) maps[currentMap].numVertexes);
-
-                if (maps[currentMap].vertexes == NULL) {
-                    maps[currentMap].vertexes = (VERTEX *) calloc(maps[currentMap].numVertexes, sizeof(VERTEX));
-                }
-
-                fpos_t previousFilePos;
-                fgetpos(wadFile, &previousFilePos);
-                {
-                    fseek(wadFile, lump.filePos, SEEK_SET);
-                    for (int j = 0; j < maps[currentMap].numVertexes; ++j) {
-                        fread(&maps[currentMap].vertexes[j], sizeof(VERTEX), 1, wadFile);
-                        printf("(%d, %d) ", maps[currentMap].vertexes[j].x, maps[currentMap].vertexes[j].y);
-                    }
-                    printf("\n");
-                }
-                fsetpos(wadFile, &previousFilePos);
-            }
         }
+        printf("\nLoaded %d map label lumps.\n", mapLumps->count);
     }
     fclose(wadFile);
 }
 
-void destroyMaps() {
-    if (maps != NULL) {
-//        for (int i = 0; i < numMaps; ++i) {
-//            if (maps[i].vertexes != NULL) free(maps[i].vertexes);
-//            if (maps[i].linedefs != NULL) free(maps[i].linedefs);
-//            if (maps[i].things   != NULL) free(maps[i].things);
-//        }
-        free(maps);
+//
+// Read the specified WAD to load the map specified by mapLabel
+//
+void loadWadMap(const char *wadFileName, filelump_t *mapLabel, map_t *map) {
+    assert(mapLabel != NULL && map != NULL);
+    map->label = *mapLabel;
+
+    FILE *wadFile = fopen(wadFileName, "rb");
+    assert(wadFile != NULL);
+    {
+        // Read and validate wadinfo
+        wadinfo_t wadinfo;
+        fread(&wadinfo, sizeof(wadinfo_t), 1, wadFile);
+
+        if (strncmp(wadinfo.identification, "IWAD", 4) != 0
+         && strncmp(wadinfo.identification, "PWAD", 4) != 0) {
+            printf("\nInvalid WAD info: identification '%.*s'", 4, wadinfo.identification);
+            fclose(wadFile);
+            return;
+        }
+
+        printf("\n%s - %.*s, %d lumps, dictionary @ %x (%d bytes)\n",
+               wadFileName, 4, wadinfo.identification, wadinfo.numLumps,
+               wadinfo.infoTableOffset, wadinfo.infoTableOffset);
+
+        fseek(wadFile, wadinfo.infoTableOffset, SEEK_SET);
+        fpos_t fpos;
+        fgetpos(wadFile, &fpos);
+
+        // Read in map lumps
+        filelump_t lump;
+        for (int i = 0; i < wadinfo.numLumps; ++i) {
+            fread(&lump, sizeof(filelump_t), 1, wadFile);
+            if (strncmp(lump.name, map->label.name, 8) == 0) {
+                printf("Found map label lump: %.*s (expected %.*s)\n",
+                       8, lump.name, 8, map->label.name);
+                break;
+            }
+        }
+
+        // ---- Things
+        fread(&lump, sizeof(filelump_t), 1, wadFile);
+        if (strncmp(lump.name, "THINGS", 8) != 0) {
+            printf("Unexpected lump: '%8.*s' (expected 'THINGS'), %5d bytes, offset @ 0x%x (%d bytes)\n",
+                   8, lump.name, lump.size, lump.filePos, lump.filePos);
+        } else {
+            fgetpos(wadFile, &fpos);
+            fseek(wadFile, lump.filePos, SEEK_SET);
+            {
+                map->numThings = lump.size / sizeof(mapthing_t);
+                map->things = (mapthing_t *) calloc((size_t) map->numThings, sizeof(mapthing_t));
+                printf("Reading %d things... ", map->numThings);
+                for (int i = 0; i < map->numThings; ++i) {
+                    fread(&map->things[i], sizeof(mapthing_t), 1, wadFile);
+                    printf("{pos: (%d, %d), angle: %d, type: 0x%04x, options: 0x%04x} ",
+                           map->things[i].x, map->things[i].y, map->things[i].angle,
+                           map->things[i].type, map->things[i].options);
+                }
+                printf("\n");
+            }
+            fsetpos(wadFile, &fpos);
+        }
+
+        // ---- LineDefs
+        fread(&lump, sizeof(filelump_t), 1, wadFile);
+        if (strncmp(lump.name, "LINEDEFS", 8) != 0) {
+            printf("Unexpected lump: '%8.*s' (expected 'LINEDEFS'), %5d bytes, offset @ 0x%x (%d bytes)\n",
+                   8, lump.name, lump.size, lump.filePos, lump.filePos);
+        } else {
+            fgetpos(wadFile, &fpos);
+            fseek(wadFile, lump.filePos, SEEK_SET);
+            {
+                map->numLinedefs = lump.size / sizeof(linedef_t);
+                map->linedefs = (linedef_t *) calloc((size_t) map->numLinedefs, sizeof(linedef_t));
+                printf("Reading %d linedefs... ", map->numLinedefs);
+                for (int i = 0; i < map->numLinedefs; ++i) {
+                    fread(&map->linedefs[i], sizeof(linedef_t), 1, wadFile);
+                    printf("{v1,2: (%d, %d), flags: 0x%08x, special: 0x%08x, tag: %3d, sideNum 0x%2x%2x} ",
+                           map->linedefs[i].v1, map->linedefs[i].v2, map->linedefs[i].flags,
+                           map->linedefs[i].special, map->linedefs[i].tag, map->linedefs[i].sideNum[0],
+                           map->linedefs[i].sideNum[1]);
+                }
+                printf("\n");
+            }
+            fsetpos(wadFile, &fpos);
+        }
+
+        // ---- SideDefs
+        fread(&lump, sizeof(filelump_t), 1, wadFile);
+        if (strncmp(lump.name, "SIDEDEFS", 8) != 0) {
+            printf("Unexpected lump: '%8.*s' (expected 'SIDEDEFS'), %5d bytes, offset @ 0x%x (%d bytes)\n",
+                   8, lump.name, lump.size, lump.filePos, lump.filePos);
+        } else {
+            fgetpos(wadFile, &fpos);
+            fseek(wadFile, lump.filePos, SEEK_SET);
+            {
+                map->numSidedefs = lump.size / sizeof(sidedef_t);
+                map->sidedefs = (sidedef_t *) calloc((size_t) map->numSidedefs, sizeof(sidedef_t));
+                printf("Reading %d sidedefs... ", map->numSidedefs);
+                for (int i = 0; i < map->numLinedefs; ++i) {
+                    fread(&map->sidedefs[i], sizeof(sidedef_t), 1, wadFile);
+                    printf("{texoff: %d, rowoff: %d, toptex: %.*s, bottex: %.*s, midtex: %.*s, sector: %d} ",
+                           map->sidedefs[i].textureOffset, map->sidedefs[i].rowOffset,
+                           8, map->sidedefs[i].topTexture, 8, map->sidedefs[i].bottomTexture, 8,
+                           map->sidedefs[i].midTexture,
+                           map->sidedefs[i].sector);
+                }
+                printf("\n");
+            }
+            fsetpos(wadFile, &fpos);
+        }
+
+        // ---- Vertexes
+        fread(&lump, sizeof(filelump_t), 1, wadFile);
+        if (strncmp(lump.name, "VERTEXES", 8) != 0) {
+            printf("Unexpected lump: '%8.*s' (expected 'VERTEXES'), %5d bytes, offset @ 0x%x (%d bytes)\n",
+                   8, lump.name, lump.size, lump.filePos, lump.filePos);
+        } else {
+            fgetpos(wadFile, &fpos);
+            fseek(wadFile, lump.filePos, SEEK_SET);
+            {
+                map->numVertexes = lump.size / sizeof(mapvertex_t);
+                map->vertices = (mapvertex_t *) calloc((size_t) map->numVertexes, sizeof(mapvertex_t));
+                printf("Reading %d vertices... ", map->numVertexes);
+                for (int i = 0; i < map->numVertexes; ++i) {
+                    fread(&map->vertices[i], sizeof(mapvertex_t), 1, wadFile);
+                    printf("{pos: (%d,%d)} ", map->vertices[i].x, map->vertices[i].y);
+                }
+                printf("\n");
+            }
+            fsetpos(wadFile, &fpos);
+        }
+
+        // TODO: read other map lumps as needed
     }
+
+    fclose(wadFile);
 }

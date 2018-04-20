@@ -15,6 +15,10 @@
 #define SCREEN_FLAGS (SDL_WINDOW_RESIZABLE)
 #define RENDER_FLAGS (SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC)
 
+int numMsgBoxButtons = 0;
+SDL_MessageBoxButtonData *msgBoxButtons = NULL;
+map_t *map = NULL;
+
 typedef struct Game {
     bool running;
 
@@ -41,6 +45,8 @@ typedef struct Game {
     } graphics;
 
     Assets *assets;
+    maplumps_t maplumps;
+    int currentMap;
 } Game;
 
 // ----------------------------------------------------------------------------
@@ -63,6 +69,8 @@ Game game = {
                 NULL, 0, 0.f,
         },
         NULL,
+        {0},
+        -1
 };
 
 // ----------------------------------------------------------------------------
@@ -108,7 +116,8 @@ void init() {
 void initAssets() {
     game.assets = loadAssets("data/assets.json", game.screen.renderer);
 
-    readWad("data/doom1.wad");
+    initMapLumps(&game.maplumps, 10);
+    readWadMaps("data/doom1.wad", &game.maplumps);
 
     TextureRegion *spriteRegion = createTextureRegion(game.assets->spritesheets[0], 0, 0, 24, 24);
     game.graphics.sprite = createSpriteWithBounds(spriteRegion, 0, 0, 96, 96);
@@ -129,6 +138,44 @@ void events() {
                 }
                 if (event.key.keysym.sym == SDLK_SPACE) {
                     game.graphics.animIndex = (game.graphics.animIndex + 1) % game.assets->numAnimations;
+                }
+                if (event.key.keysym.sym == SDLK_TAB) {
+                    if (msgBoxButtons != NULL) {
+                        free(msgBoxButtons);
+                        msgBoxButtons = NULL;
+                    }
+                    msgBoxButtons = (SDL_MessageBoxButtonData *) calloc((size_t) game.maplumps.count, sizeof(SDL_MessageBoxButtonData));
+                    for (int i = 0; i < game.maplumps.count; ++i) {
+                        msgBoxButtons[i] = (SDL_MessageBoxButtonData) {
+                                flags: 0,
+                                buttonid: i,
+                                text: game.maplumps.lumps[i].name
+                        };
+                    }
+
+                    const SDL_MessageBoxData messageBoxData = {
+                            flags: 0,
+                            window: NULL,//game.screen.window,
+                            title: "Map Picker",
+                            message: "Pick a map to view",
+                            numbuttons: game.maplumps.count,
+                            buttons: msgBoxButtons,
+                            colorScheme: NULL
+                    };
+                    if (SDL_ShowMessageBox(&messageBoxData, &game.currentMap) == 0) {
+                        printf("\nMap lump selected: %d - %.*s",
+                               game.currentMap, 8, game.maplumps.lumps[game.currentMap].name);
+
+                        if (map != NULL) {
+                            free(map->vertices); map->numVertexes = 0;
+                            free(map->sidedefs); map->numSidedefs = 0;
+                            free(map->linedefs); map->numLinedefs = 0;
+                            free(map->things);   map->numThings   = 0;
+                            free(map);
+                        }
+                        map = (map_t *) calloc(1, sizeof(map_t));
+                        loadWadMap("data/doom1.wad", &game.maplumps.lumps[game.currentMap], map);
+                    }
                 }
             } break;
             case SDL_KEYDOWN: {
@@ -180,16 +227,36 @@ void render() {
 
     renderSprite(game.screen.renderer, game.graphics.sprite);
 
-    const int size = 6;
-    for (int i = 0; i < maps[0].numVertexes; ++i) {
-        SDL_Texture *texture = game.assets->animations[9]->keyframes[0]->texture->texture;
-        const SDL_Rect src = game.assets->animations[9]->keyframes[0]->region;
-        const SDL_Rect dest = {
-                (maps[0].vertexes[i].x - size / 2 -  800) / 5, // shift onscreen & scale
-                (maps[0].vertexes[i].y - size / 2 + 4500) / 5, // shift onscreen & scale
-                size, size
-        };
-        SDL_RenderCopy(game.screen.renderer, texture, &src, &dest);
+    if (map != NULL) {
+        // these are only set to make e1m1 fit onscreen, gotta write some camera code
+        int shiftx = 0;
+        int shifty = 4900;
+        int scale = 6;
+
+        // Draw linedefs
+        SDL_SetRenderDrawColor(game.screen.renderer, 0xFF, 0x00, 0x00, 0xFF);
+        for (int i = 0; i < map->numLinedefs; ++i) {
+            short v1 = map->linedefs[i].v1;
+            short v2 = map->linedefs[i].v2;
+            SDL_RenderDrawLine(game.screen.renderer,
+                               (map->vertices[v1].x + shiftx) / scale, (map->vertices[v1].y + shifty) / scale,
+                               (map->vertices[v2].x + shiftx) / scale, (map->vertices[v2].y + shifty) / scale);
+        }
+
+        // Draw things
+        SDL_SetRenderDrawColor(game.screen.renderer, 0x00, 0xFF, 0x00, 0xFF);
+        SDL_Rect rect = {0};
+        for (int i = 0; i < map->numThings; ++i) {
+            const int size = 6;
+            rect.x = ((map->things[i].x + shiftx) / scale) - (size / 2);
+            rect.y = ((map->things[i].y + shifty) / scale) - (size / 2);
+            rect.w = size;
+            rect.h = size;
+            SDL_RenderFillRect(game.screen.renderer, &rect);
+//            SDL_RenderDrawPoint(game.screen.renderer, (map->things[i].x + shiftx) / scale, (map->things[i].y + shifty) / scale);
+        }
+
+        SDL_SetRenderDrawColor(game.screen.renderer, 0xFF, 0xFF, 0xFF, 0xFF);
     }
 
     SDL_RenderPresent(game.screen.renderer);
@@ -200,7 +267,18 @@ void shutdown() {
     SDL_DestroyWindow(game.screen.window);
 
     destroyAssets(game.assets);
-    destroyMaps();
+    freeMapLumps(&game.maplumps);
+    if (msgBoxButtons != NULL) {
+        free(msgBoxButtons);
+        msgBoxButtons = NULL;
+    }
+    if (map != NULL) {
+        free(map->vertices); map->numVertexes = 0;
+        free(map->sidedefs); map->numSidedefs = 0;
+        free(map->linedefs); map->numLinedefs = 0;
+        free(map->things);   map->numThings   = 0;
+        free(map);
+    }
 
     SDL_Quit();
     game.running = false;

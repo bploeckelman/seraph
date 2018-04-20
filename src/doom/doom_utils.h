@@ -4,111 +4,177 @@
 #include <stdint.h>
 
 /*
+ * https://zdoom.org/wiki/WAD
+ * https://github.com/id-Software/DOOM
+ */
 
- https://zdoom.org/wiki/WAD
+// WAD file header
+typedef struct {
+    char identification[4]; // "IWAD" or "PWAD"
+    int numLumps;
+    int infoTableOffset;
+} wadinfo_t;
 
- Map:
-   Map Lumps Sentinel: { name: "E1M1", filePos: 67500, size: 0 }
-   Map Lumps:
-   [
-     THINGS,      // list of things in the map, (x, y) coordinates, facing angle, etc...
-     LINEDEFS,    // list of linedefs defined by starting, ending vertices, flags, type, tag, args, etc..
-     SIDEDEFS,    // list of sidedefs linking to linedefs, holds side data
-     VERTEXES,    // each vertex in the map - (x, y) pairs
-     SEGS,        // segments that connect to form sub-sectors
-     SSECTORS,    // sub-sectors
-     NODES,       // node tree for rendering acceleration
-     SECTORS,     // floor / ceil heights and textures, light value, tag, type
-     REJECT,      // (obsolete) visibility data for ai acceleration
-     BLOCKMAP,    // collision info
-     (BEHAVIOR),  // first in Hexen
-     (SCRIPTS)    // nice to include for modders
-   ]
-   Next Map Lumps Sentinel: { name: "E1M2", filePos: ..., size: 0 }
-   Next Map Lumps: [ ... ]
-   ...
+// WAD file lump info table entry
+typedef struct {
+    int filePos;
+    int size;
+    char name[8];
+} filelump_t;
 
-*/
+// Map level types, defined in the order of Lumps in a map WAD
+enum {
+    LUMP_LABEL,    // a separator, name, ExMx or MAPxx
+    LUMP_THINGS,   // monsters, items, etc...
+    LUMP_LINEDEFS, // linedefs, from editing
+    LUMP_SIDEDEFS, // sidedefs, from editin
+    LUMP_VERTEXES, // vertices, edited and BSP splits generated
+    LUMP_SEGS,     // linesegs, from linedefs split by bsp
+    LUMP_SSECTORS, // subsectors, list of linesegs
+    LUMP_NODES,    // BSP nodes
+    LUMP_SECTORS,  // sectors, from editing
+    LUMP_REJECT,   // LUT, sector-sector visibility
+    LUMP_BLOCKMAP  // LUT, motion clippingg, walls/grid element
+} MapLevelType;
 
-typedef struct WadHeader {
-    char identification[4];
-    int32_t numLumps;
-    int32_t infoTableOffset;
-} WadHeader;
+// A single vertex
+typedef struct {
+    short x;
+    short y;
+} mapvertex_t;
 
-typedef struct WadFileLump {
-    int32_t filePos;
-    int32_t size;
-    char name[8]; // allowed: A-Z 0-9 []-_
-} WadFileLump;
+// A SideDef, defining the visual appearance of a wall,
+// by setting textures and offsets
+typedef struct {
+    short textureOffset;
+    short rowOffset;
+    char topTexture[8];
+    char bottomTexture[8];
+    char midTexture[8];
+    short sector; // front sector, towards viewer
+} sidedef_t;
 
-// TODO: is this needed for reading?
-//typedef struct WadLumpInfo {
-//    char name[8];
-//    int handle;
-//    int position;
-//    int size;
-//} WadLumpInfo;
+// A LineDef, as used for editing, and as input to the BSP builder
+typedef struct {
+    short v1;
+    short v2;
+    short flags;
+    short special;
+    short tag;
+    short sideNum[2]; // sideNum[1] will be -1 if one sided
+} linedef_t;
 
-typedef struct THING {
-    int16_t x;
-    int16_t y;
-    uint16_t angle; // 0=East, 45=NE, 90=North 135=NW, 180=West, 225=SW, 270=South
-    uint16_t type;
-    uint16_t flags;
-} THING;
+// LineDef Attributes
 
-typedef struct LINEDEF {
-    int16_t startVertex;
-    int16_t endVertex;
-    int16_t flags;
-    int16_t types;
-    int16_t tag;
-    int16_t rightSide;
-    int16_t leftSide;
-} LINEDEF;
+// Solid, is an obstacle.
+#define ML_BLOCKING		1
+// Blocks monsters only.
+#define ML_BLOCKMONSTERS	2
+// Backside will not be present at all
+//  if not two sided.
+#define ML_TWOSIDED		4
+// If a texture is pegged, the texture will have
+// the end exposed to air held constant at the
+// top or bottom of the texture (stairs or pulled
+// down things) and will move with a height change
+// of one of the neighbor sectors.
+// Unpegged textures allways have the first row of
+// the texture at the top pixel of the line for both
+// top and bottom textures (use next to windows).
+// upper texture unpegged
+#define ML_DONTPEGTOP		8
+// lower texture unpegged
+#define ML_DONTPEGBOTTOM	16
+// In AutoMap: don't map as two sided: IT'S A SECRET!
+#define ML_SECRET		32
+// Sound rendering: don't let sound cross two of these.
+#define ML_SOUNDBLOCK		64
+// Don't draw on the automap at all.
+#define ML_DONTDRAW		128
+// Set if already seen, thus drawn in automap.
+#define ML_MAPPED		256
 
-typedef struct VERTEX {
-    int16_t x;
-    int16_t y;
-} VERTEX;
+// Sector definition, from editing
+typedef struct {
+    short floorHeight;
+    short ceilingHeight;
+    char floorPic[8];
+    char ceilingPic[8];
+    short lightlevel;
+    short special;
+    short tag;
+} mapsector_t;
 
-typedef struct Map {
-    char name[5];
-    size_t numThings;
-    size_t numLinedefs;
-    size_t numVertexes;
-    THING *things;
-    LINEDEF *linedefs;
-//    SIDEDEFS
-    VERTEX *vertexes;
-//    SEGS
-//    SSECTORS
-//    NODES
-//    SECTORS
-//    REJECT
-//    BLOCKMAP
-} Map;
+// SubSector, as generated by BSP
+typedef struct {
+    short numSegs;
+    short firstSeg; // index of first one, segs are stored sequentially
+} mapsubsector_t;
 
-//typedef struct MapLumps {
-//    char mapName[5];
-//    WadFileLump things;
-//    WadFileLump linedefs;
-////    WadFileLump sidedefs;
-//    WadFileLump vertexes;
-////    WadFileLump segs;
-////    WadFileLump ssectors;
-////    WadFileLump nodes;
-////    WadFileLump sectors;
-////    WadFileLump reject;
-////    WadFileLump blockmap;
-//} MapLumps;
+// LineSeg, generated by splitting LineDefs
+// using partition lines selected by BSP builder
+typedef struct {
+    short v1;
+    short v2;
+    short angle;
+    short linedef;
+    short side;
+    short offset;
+} mapseg_t;
 
-Map *maps;
-size_t numMaps;
 
-void readWad(const char *wadFileName);
-void destroyMaps();
+// BSP node
+#define NF_SUBSECTOR 0x8000
+typedef struct {
+    // partition line from (x,y) to (x+dx,y+dy)
+    short x;
+    short y;
+    short dx;
+    short dy;
+    // bounding box for each child,
+    // clip against view frustum
+    short bbox[2][4];
+    // if NF_SUBSECTOR it's a subsector
+    // else it's a node of another subtree
+    unsigned short children[2];
+} mapnode_t;
 
+// Thing definition, position, orientation, and type,
+// plus skill/visibility flags and attributes
+typedef struct {
+    short x;
+    short y;
+    short angle;
+    short type;
+    short options;
+} mapthing_t;
+
+//
+// Loading helpers
+//
+typedef struct {
+    int count;
+    int capacity;
+    filelump_t *lumps;
+} maplumps_t;
+
+typedef struct {
+    int numThings;
+    int numLinedefs;
+    int numSidedefs;
+    int numVertexes;
+    filelump_t label;
+    mapthing_t *things;
+    linedef_t *linedefs;
+    sidedef_t *sidedefs;
+    mapvertex_t *vertices;
+} map_t;
+
+void initMapLumps(maplumps_t *maplumps, int initialSize);
+void insertMapLump(maplumps_t *maplumps, filelump_t *lump);
+void freeMapLumps(maplumps_t *maplumps);
+
+void readWadMaps(const char *wadFileName, maplumps_t *mapLumps);
+void loadWadMap(const char *wadFileName, filelump_t *mapLabel, map_t *map);
 
 #endif //SERAPH_DOOM_UTILS_H
