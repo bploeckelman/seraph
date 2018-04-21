@@ -18,7 +18,6 @@
 
 SDL_MessageBoxButtonData *msgBoxButtons = NULL;
 
-map_t *map = NULL;
 int mapMinX = INT32_MAX;
 int mapMinY = INT32_MAX;
 int mapMaxX = INT32_MIN;
@@ -51,39 +50,52 @@ typedef struct Game {
     } graphics;
 
     struct {
+        bool leftDown;
+        bool rightDown;
+    } mouse;
+
+    struct {
         Camera camera;
     } view;
 
-    Assets *assets;
-    maplumps_t maplumps;
+    map_t *map;
+    maplumps_t *maplumps;
     int currentMap;
+
+    Assets *assets;
 } Game;
 
 // ----------------------------------------------------------------------------
 
 Game game = {
-        false,
+        running: false,
         {
-                0, 0, 0.0
+                now: 0,
+                prev: 0,
+                delta: 0.0
         },
         {
-                SCREEN_TITLE,
-                SCREEN_WIDTH,
-                SCREEN_HEIGHT,
-                SCREEN_FLAGS,
-                RENDER_FLAGS,
-                NULL,
-                NULL,
+                title: SCREEN_TITLE,
+                width: SCREEN_WIDTH,
+                height: SCREEN_HEIGHT,
+                windowFlags: SCREEN_FLAGS,
+                renderFlags: RENDER_FLAGS,
+                window: NULL,
+                renderer: NULL,
         },
         {
-                NULL, 0, 0.f,
+                sprite: NULL,
+                animIndex: 0,
+                animStateTime: 0.f,
         },
         {
-                {0}
+                leftDown: false,
+                rightDown: false
         },
-        NULL,
-        {0},
-        -1
+        map: NULL,
+        maplumps: NULL,
+        currentMap: -1,
+        assets: NULL
 };
 
 // ----------------------------------------------------------------------------
@@ -131,8 +143,8 @@ void init() {
 void initAssets() {
     game.assets = loadAssets("data/assets.json", game.screen.renderer);
 
-    initMapLumps(&game.maplumps, 10);
-    readWadMaps("data/doom1.wad", &game.maplumps);
+    game.maplumps = initMapLumps(10);
+    readWadMaps("data/doom1.wad", game.maplumps);
 
     TextureRegion *spriteRegion = createTextureRegion(game.assets->spritesheets[0], 0, 0, 24, 24);
     game.graphics.sprite = createSpriteWithBounds(spriteRegion, 0, 0, 96, 96);
@@ -146,7 +158,12 @@ void events() {
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
         switch (event.type) {
+            // System ---------------------------------
             case SDL_QUIT: game.running = false; break;
+            // Keyboard -------------------------------
+            case SDL_KEYDOWN: {
+                // ...
+            } break;
             case SDL_KEYUP: {
                 if (event.key.keysym.sym == SDLK_ESCAPE) {
                     game.running = false;
@@ -157,14 +174,36 @@ void events() {
                 if (event.key.keysym.sym == SDLK_TAB) {
                     showMapSelectDialog();
                 }
-            } break;
-            case SDL_KEYDOWN: {
+
                 if      (event.key.keysym.sym == SDLK_z) { if (++mapScale > 15) mapScale = 15; }
                 else if (event.key.keysym.sym == SDLK_x) { if (--mapScale < 1) mapScale = 1; }
 
                 if (event.key.keysym.sym == SDLK_RETURN) {
                     printf("Camera: (%d, %d)\n", game.view.camera.x, game.view.camera.y);
                     printf("Map extents: min(%d, %d) max(%d, %d) scale = %d\n", mapMinX, mapMinY, mapMaxX, mapMaxY, mapScale);
+                }
+            } break;
+            // Mouse ----------------------------------
+            case SDL_MOUSEWHEEL: {
+                if (event.wheel.y > 0) { if (--mapScale < 1) mapScale = 1; }
+                if (event.wheel.y < 0) { if (++mapScale > 15) mapScale = 15; }
+            } break;
+            case SDL_MOUSEBUTTONDOWN: {
+                if (event.button.button == SDL_BUTTON_LEFT)  game.mouse.leftDown  = true;
+                if (event.button.button == SDL_BUTTON_RIGHT) game.mouse.rightDown = true;
+            } break;
+            case SDL_MOUSEBUTTONUP: {
+                if (event.button.button == SDL_BUTTON_LEFT)  game.mouse.leftDown  = false;
+                if (event.button.button == SDL_BUTTON_RIGHT) game.mouse.rightDown = false;
+
+                if (event.button.button == SDL_BUTTON_RIGHT) {
+                    showMapSelectDialog();
+                }
+            } break;
+            case SDL_MOUSEMOTION: {
+                if (game.mouse.leftDown) {
+                    game.view.camera.x -= event.motion.xrel;
+                    game.view.camera.y -= event.motion.yrel;
                 }
             } break;
             default: break;
@@ -217,75 +256,66 @@ void render() {
 
     renderSprite(game.screen.renderer, game.graphics.sprite);
 
-    if (map != NULL) {
+    if (game.map != NULL) {
         // Draw linedefs
         SDL_SetRenderDrawColor(game.screen.renderer, 0xFF, 0x00, 0x00, 0xFF);
-        for (int i = 0; i < map->numLinedefs; ++i) {
-            short v1 = map->linedefs[i].v1;
-            short v2 = map->linedefs[i].v2;
-            int x1 = map->vertices[v1].x / mapScale - game.view.camera.x;
-            int y1 = map->vertices[v1].y / mapScale - game.view.camera.y;
-            int x2 = map->vertices[v2].x / mapScale - game.view.camera.x;
-            int y2 = map->vertices[v2].y / mapScale - game.view.camera.y;
+        for (int i = 0; i < game.map->numLinedefs; ++i) {
+            int x1 = game.map->vertices[game.map->linedefs[i].v1].x / mapScale - game.view.camera.x;
+            int y1 = game.map->vertices[game.map->linedefs[i].v1].y / mapScale - game.view.camera.y;
+            int x2 = game.map->vertices[game.map->linedefs[i].v2].x / mapScale - game.view.camera.x;
+            int y2 = game.map->vertices[game.map->linedefs[i].v2].y / mapScale - game.view.camera.y;
             SDL_RenderDrawLine(game.screen.renderer, x1, y1, x2, y2);
-//                               (map->vertices[v1].x + shiftx) / mapScale, (map->vertices[v1].y + shifty) / mapScale,
-//                               (map->vertices[v2].x + shiftx) / mapScale, (map->vertices[v2].y + shifty) / mapScale);
         }
+        SDL_SetRenderDrawColor(game.screen.renderer, 0xFF, 0xFF, 0xFF, 0xFF);
 
         // Draw things
-        SDL_SetRenderDrawColor(game.screen.renderer, 0x00, 0xFF, 0x00, 0xFF);
         SDL_Rect rect;
-        for (int i = 0; i < map->numThings; ++i) {
+        for (int i = 0; i < game.map->numThings; ++i) {
             const int size = 6;
             rect = (SDL_Rect) {
-                    x: (map->things[i].x / mapScale) - (size / 2) - game.view.camera.x, //((map->things[i].x + shiftx) / mapScale) - (size / 2);
-                    y: (map->things[i].y / mapScale) - (size / 2) - game.view.camera.y, //((map->things[i].y + shifty) / mapScale) - (size / 2);
+                    x: (game.map->things[i].x / mapScale) - (size / 2) - game.view.camera.x,
+                    y: (game.map->things[i].y / mapScale) - (size / 2) - game.view.camera.y,
                     w: size, h: size
             };
-
             SDL_SetRenderDrawColor(game.screen.renderer, 0xFF, 0xFF, 0x00, 0xFF);
             SDL_RenderFillRect(game.screen.renderer, &rect);
-
             SDL_SetRenderDrawColor(game.screen.renderer, 0x00, 0xFF, 0x00, 0xFF);
             SDL_RenderDrawRect(game.screen.renderer, &rect);
-
-//            SDL_RenderDrawPoint(game.screen.renderer, (map->things[i].x + shiftx) / mapScale, (map->things[i].y + shifty) / mapScale);
         }
+        SDL_SetRenderDrawColor(game.screen.renderer, 0xFF, 0xFF, 0xFF, 0xFF);
+
+        // Draw map bounds rect
+        rect = (SDL_Rect) {
+                x: (mapMinX / mapScale) - game.view.camera.x,
+                y: (mapMinY / mapScale) - game.view.camera.y,
+                w: (mapMaxX - mapMinX) / mapScale,
+                h: (mapMaxY - mapMinY) / mapScale
+        };
+        SDL_SetRenderDrawColor(game.screen.renderer, 0x00, 0x00, 0xFF, 0xFF);
+        SDL_RenderDrawRect(game.screen.renderer, &rect);
+
+        // Draw map bounds rect min x,y
+        const int size = 10;
+        rect = (SDL_Rect) {
+                x: (mapMinX / mapScale) - (size / 2) - game.view.camera.x,
+                y: (mapMinY / mapScale) - (size / 2) - game.view.camera.y,
+                w: size, h: size
+        };
+        SDL_SetRenderDrawColor(game.screen.renderer, 0x00, 0x00, 0xFF, 0xFF);
+        SDL_RenderFillRect(game.screen.renderer, &rect);
+
+        // Draw map bounds rect center
+        rect = (SDL_Rect) {
+                x: rect.x + (((mapMaxX - mapMinX) / mapScale) / 2),
+                y: rect.y + (((mapMaxY - mapMinY) / mapScale) / 2),
+                w: size, h: size
+        };
+        SDL_SetRenderDrawColor(game.screen.renderer, 0xAA, 0x00, 0xAA, 0xFF);
+        SDL_RenderFillRect(game.screen.renderer, &rect);
+
         SDL_SetRenderDrawColor(game.screen.renderer, 0xFF, 0xFF, 0xFF, 0xFF);
     }
 
-    // Translated map bounds rect
-    SDL_Rect rect = {
-            x: (mapMinX / mapScale) - game.view.camera.x, //(size / 2) - game.view.camera.x,
-            y: (mapMinY / mapScale) - game.view.camera.y, //(size / 2) - game.view.camera.y,
-            w: (mapMaxX - mapMinX) / mapScale, //size,
-            h: (mapMaxY - mapMinY) / mapScale //size
-    };
-    SDL_SetRenderDrawColor(game.screen.renderer, 0x00, 0x00, 0xFF, 0xFF);
-    SDL_RenderDrawRect(game.screen.renderer, &rect);
-
-    // Translated map bounds rect min x,y
-    const int size = 10;
-    rect = (SDL_Rect) {
-            x: (mapMinX / mapScale) - game.view.camera.x - (size / 2),
-            y: (mapMinY / mapScale) - game.view.camera.y - (size / 2),
-            w: size,
-            h: size
-    };
-    SDL_SetRenderDrawColor(game.screen.renderer, 0x00, 0x00, 0xFF, 0xFF);
-    SDL_RenderFillRect(game.screen.renderer, &rect);
-
-    // Translated map bounds rect center
-    rect = (SDL_Rect) {
-            x: rect.x + (((mapMaxX - mapMinX) / mapScale) / 2),
-            y: rect.y + (((mapMaxY - mapMinY) / mapScale) / 2),
-            w: size,
-            h: size
-    };
-    SDL_SetRenderDrawColor(game.screen.renderer, 0xAA, 0x00, 0xAA, 0xFF);
-    SDL_RenderFillRect(game.screen.renderer, &rect);
-
-    SDL_SetRenderDrawColor(game.screen.renderer, 0xFF, 0xFF, 0xFF, 0xFF);
     SDL_RenderPresent(game.screen.renderer);
 }
 
@@ -294,17 +324,11 @@ void shutdown() {
     SDL_DestroyWindow(game.screen.window);
 
     destroyAssets(game.assets);
-    freeMapLumps(&game.maplumps);
+    freeMap(game.map);
+    freeMapLumps(game.maplumps);
     if (msgBoxButtons != NULL) {
         free(msgBoxButtons);
         msgBoxButtons = NULL;
-    }
-    if (map != NULL) {
-        free(map->vertices); map->numVertexes = 0;
-        free(map->sidedefs); map->numSidedefs = 0;
-        free(map->linedefs); map->numLinedefs = 0;
-        free(map->things);   map->numThings   = 0;
-        free(map);
     }
 
     SDL_Quit();
@@ -321,7 +345,6 @@ int main(int argc, char **argv) {
     exit(0);
 }
 
-
 // ------------------------------------------------------------------
 
 void showMapSelectDialog() {
@@ -329,12 +352,12 @@ void showMapSelectDialog() {
         free(msgBoxButtons);
         msgBoxButtons = NULL;
     }
-    msgBoxButtons = (SDL_MessageBoxButtonData *) calloc((size_t) game.maplumps.count, sizeof(SDL_MessageBoxButtonData));
-    for (int i = 0; i < game.maplumps.count; ++i) {
+    msgBoxButtons = (SDL_MessageBoxButtonData *) calloc((size_t) game.maplumps->count, sizeof(SDL_MessageBoxButtonData));
+    for (int i = 0; i < game.maplumps->count; ++i) {
         msgBoxButtons[i] = (SDL_MessageBoxButtonData) {
                 flags: 0,
                 buttonid: i,
-                text: game.maplumps.lumps[i].name
+                text: game.maplumps->lumps[i].name
         };
     }
 
@@ -343,42 +366,38 @@ void showMapSelectDialog() {
             window: game.screen.window,
             title: "Map Picker",
             message: "Pick a map to view",
-            numbuttons: game.maplumps.count,
+            numbuttons: game.maplumps->count,
             buttons: msgBoxButtons,
             colorScheme: NULL
     };
     if (SDL_ShowMessageBox(&messageBoxData, &game.currentMap) == 0) {
         printf("\nMap lump selected: %d - %.*s",
-               game.currentMap, 8, game.maplumps.lumps[game.currentMap].name);
+               game.currentMap, 8, game.maplumps->lumps[game.currentMap].name);
 
-        if (map != NULL) {
-            free(map->vertices); map->numVertexes = 0;
-            free(map->sidedefs); map->numSidedefs = 0;
-            free(map->linedefs); map->numLinedefs = 0;
-            free(map->things);   map->numThings   = 0;
-            free(map);
+        if (game.map != NULL) {
+            freeMap(game.map);
         }
 
-        map = (map_t *) calloc(1, sizeof(map_t));
-        loadWadMap("data/doom1.wad", &game.maplumps.lumps[game.currentMap], map);
+        game.map = (map_t *) calloc(1, sizeof(map_t));
+        loadWadMap("data/doom1.wad", &game.maplumps->lumps[game.currentMap], game.map);
 
         // Determine map bounds and shift camera so map is in view
         mapMinX = INT32_MAX;
         mapMinY = INT32_MAX;
         mapMaxX = INT32_MIN;
         mapMaxY = INT32_MIN;
-        for (int i = 0; i < map->numVertexes; ++i) {
-            if (map->vertices[i].x < mapMinX) mapMinX = map->vertices[i].x;
-            if (map->vertices[i].y < mapMinY) mapMinY = map->vertices[i].y;
-            if (map->vertices[i].x > mapMaxX) mapMaxX = map->vertices[i].x;
-            if (map->vertices[i].y > mapMaxY) mapMaxY = map->vertices[i].y;
+        for (int i = 0; i < game.map->numVertexes; ++i) {
+            if (game.map->vertices[i].x < mapMinX) mapMinX = game.map->vertices[i].x;
+            if (game.map->vertices[i].y < mapMinY) mapMinY = game.map->vertices[i].y;
+            if (game.map->vertices[i].x > mapMaxX) mapMaxX = game.map->vertices[i].x;
+            if (game.map->vertices[i].y > mapMaxY) mapMaxY = game.map->vertices[i].y;
         }
-        printf("min (%d, %d)  max(%d, %d)\n", mapMinX, mapMinY, mapMaxX, mapMaxY);
+
         int minx = (mapMinX / mapScale) + (SCREEN_WIDTH  / 2) - (((mapMaxX - mapMinX) / mapScale) / 2);
         int miny = (mapMinY / mapScale) + (SCREEN_HEIGHT / 2) - (((mapMaxY - mapMinY) / mapScale) / 2);
         game.view.camera.x = minx;
         game.view.camera.y = miny;
-//        game.view.camera.x = mapMinX / mapScale;
-//        game.view.camera.y = mapMinY / mapScale;
+
+        printf("min (%d, %d)  max(%d, %d)\n", mapMinX, mapMinY, mapMaxX, mapMaxY);
     }
 }

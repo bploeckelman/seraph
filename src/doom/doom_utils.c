@@ -9,10 +9,12 @@
 //
 // Dynamic array helpers
 //
-void initMapLumps(maplumps_t *maplumps, int initialSize) {
+maplumps_t *initMapLumps(int initialSize) {
+    maplumps_t *maplumps = (maplumps_t *) calloc(1, sizeof(maplumps_t));
     maplumps->lumps = (filelump_t *) calloc((size_t) initialSize, sizeof(filelump_t));
     maplumps->count = 0;
     maplumps->capacity = initialSize;
+    return maplumps;
 }
 
 void insertMapLump(maplumps_t *maplumps, filelump_t *lump) {
@@ -51,8 +53,6 @@ bool isLumpMapLabel(filelump_t *lump) {
 // Read the specified WAD to populate the mapLumps struct
 //
 void readWadMaps(const char *wadFileName, maplumps_t *mapLumps) {
-    assert(mapLumps != NULL);
-
     FILE *wadFile = fopen(wadFileName, "rb");
     assert(wadFile != NULL);
     {
@@ -229,4 +229,13 @@ void loadWadMap(const char *wadFileName, filelump_t *mapLabel, map_t *map) {
     }
 
     fclose(wadFile);
+}
+
+void freeMap(map_t *map) {
+    if (map == NULL) return;
+    free(map->vertices); map->numVertexes = 0;
+    free(map->sidedefs); map->numSidedefs = 0;
+    free(map->linedefs); map->numLinedefs = 0;
+    free(map->things);   map->numThings   = 0;
+    free(map);
 }

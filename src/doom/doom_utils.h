@@ -170,11 +170,12 @@ typedef struct {
     mapvertex_t *vertices;
 } map_t;
 
-void initMapLumps(maplumps_t *maplumps, int initialSize);
+maplumps_t *initMapLumps(int initialSize);
 void insertMapLump(maplumps_t *maplumps, filelump_t *lump);
 void freeMapLumps(maplumps_t *maplumps);
 
 void readWadMaps(const char *wadFileName, maplumps_t *mapLumps);
 void loadWadMap(const char *wadFileName, filelump_t *mapLabel, map_t *map);
+void freeMap(map_t *map);
 
 #endif //SERAPH_DOOM_UTILS_H
