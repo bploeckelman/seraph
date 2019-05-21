@@ -68,34 +68,34 @@ typedef struct Game {
 // ----------------------------------------------------------------------------
 
 Game game = {
-        running: false,
+        .running = false,
         {
-                now: 0,
-                prev: 0,
-                delta: 0.0
+                .now = 0,
+                .prev = 0,
+                .delta = 0.0
         },
         {
-                title: SCREEN_TITLE,
-                width: SCREEN_WIDTH,
-                height: SCREEN_HEIGHT,
-                windowFlags: SCREEN_FLAGS,
-                renderFlags: RENDER_FLAGS,
-                window: NULL,
-                renderer: NULL,
+                .title = SCREEN_TITLE,
+                .width = SCREEN_WIDTH,
+                .height = SCREEN_HEIGHT,
+                .windowFlags = SCREEN_FLAGS,
+                .renderFlags = RENDER_FLAGS,
+                .window = NULL,
+                .renderer = NULL,
         },
         {
-                sprite: NULL,
-                animIndex: 0,
-                animStateTime: 0.f,
+                .sprite = NULL,
+                .animIndex = 0,
+                .animStateTime = 0.f,
         },
         {
-                leftDown: false,
-                rightDown: false
+                .leftDown = false,
+                .rightDown = false
         },
-        map: NULL,
-        maplumps: NULL,
-        currentMap: -1,
-        assets: NULL
+        .map = NULL,
+        .maplumps = NULL,
+        .currentMap = -1,
+        .assets = NULL
 };
 
 // ----------------------------------------------------------------------------
@@ -273,9 +273,9 @@ void render() {
         for (int i = 0; i < game.map->numThings; ++i) {
             const int size = 6;
             rect = (SDL_Rect) {
-                    x: (game.map->things[i].x / mapScale) - (size / 2) - game.view.camera.x,
-                    y: (game.map->things[i].y / mapScale) - (size / 2) - game.view.camera.y,
-                    w: size, h: size
+                    .x = (game.map->things[i].x / mapScale) - (size / 2) - game.view.camera.x,
+                    .y = (game.map->things[i].y / mapScale) - (size / 2) - game.view.camera.y,
+                    .w = size, .h = size
             };
             SDL_SetRenderDrawColor(game.screen.renderer, 0xFF, 0xFF, 0x00, 0xFF);
             SDL_RenderFillRect(game.screen.renderer, &rect);
@@ -286,10 +286,10 @@ void render() {
 
         // Draw map bounds rect
         rect = (SDL_Rect) {
-                x: (mapMinX / mapScale) - game.view.camera.x,
-                y: (mapMinY / mapScale) - game.view.camera.y,
-                w: (mapMaxX - mapMinX) / mapScale,
-                h: (mapMaxY - mapMinY) / mapScale
+                .x = (mapMinX / mapScale) - game.view.camera.x,
+                .y = (mapMinY / mapScale) - game.view.camera.y,
+                .w = (mapMaxX - mapMinX) / mapScale,
+                .h = (mapMaxY - mapMinY) / mapScale
         };
         SDL_SetRenderDrawColor(game.screen.renderer, 0x00, 0x00, 0xFF, 0xFF);
         SDL_RenderDrawRect(game.screen.renderer, &rect);
@@ -297,18 +297,18 @@ void render() {
         // Draw map bounds rect min x,y
         const int size = 10;
         rect = (SDL_Rect) {
-                x: (mapMinX / mapScale) - (size / 2) - game.view.camera.x,
-                y: (mapMinY / mapScale) - (size / 2) - game.view.camera.y,
-                w: size, h: size
+                .x = (mapMinX / mapScale) - (size / 2) - game.view.camera.x,
+                .y = (mapMinY / mapScale) - (size / 2) - game.view.camera.y,
+                .w = size, .h = size
         };
         SDL_SetRenderDrawColor(game.screen.renderer, 0x00, 0x00, 0xFF, 0xFF);
         SDL_RenderFillRect(game.screen.renderer, &rect);
 
         // Draw map bounds rect center
         rect = (SDL_Rect) {
-                x: rect.x + (((mapMaxX - mapMinX) / mapScale) / 2),
-                y: rect.y + (((mapMaxY - mapMinY) / mapScale) / 2),
-                w: size, h: size
+                .x = rect.x + (((mapMaxX - mapMinX) / mapScale) / 2),
+                .y = rect.y + (((mapMaxY - mapMinY) / mapScale) / 2),
+                .w = size, .h = size
         };
         SDL_SetRenderDrawColor(game.screen.renderer, 0xAA, 0x00, 0xAA, 0xFF);
         SDL_RenderFillRect(game.screen.renderer, &rect);
@@ -355,20 +355,20 @@ void showMapSelectDialog() {
     msgBoxButtons = (SDL_MessageBoxButtonData *) calloc((size_t) game.maplumps->count, sizeof(SDL_MessageBoxButtonData));
     for (int i = 0; i < game.maplumps->count; ++i) {
         msgBoxButtons[i] = (SDL_MessageBoxButtonData) {
-                flags: 0,
-                buttonid: i,
-                text: game.maplumps->lumps[i].name
+                .flags = 0,
+                .buttonid = i,
+                .text = game.maplumps->lumps[i].name
         };
     }
 
     const SDL_MessageBoxData messageBoxData = {
-            flags: 0,
-            window: game.screen.window,
-            title: "Map Picker",
-            message: "Pick a map to view",
-            numbuttons: game.maplumps->count,
-            buttons: msgBoxButtons,
-            colorScheme: NULL
+            .flags = 0,
+            .window = game.screen.window,
+            .title = "Map Picker",
+            .message = "Pick a map to view",
+            .numbuttons = game.maplumps->count,
+            .buttons = msgBoxButtons,
+            .colorScheme = NULL
     };
     if (SDL_ShowMessageBox(&messageBoxData, &game.currentMap) == 0) {
         printf("\nMap lump selected: %d - %.*s",
